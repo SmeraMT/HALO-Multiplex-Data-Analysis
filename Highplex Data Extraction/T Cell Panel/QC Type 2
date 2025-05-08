@@ -1,0 +1,263 @@
+#Extracts data such as double, triple positives, cells from objectdata .csv file.
+#Double and triple positives - gives percentages with respect to different cell types.
+#This is particularily for 4 cell markers named as Cy5_PanCK, Gold_CD8, Green#2_CD4 and NarrowRed_FOXP3. 
+#Filtering data can be changed as required
+
+import os
+import pandas as pd
+from openpyxl import load_workbook
+from tkinter import Tk
+from tkinter.filedialog import askopenfilenames
+
+# Hide the root window
+Tk().withdraw()
+
+# Open a file dialog to select multiple CSV files
+file_paths = askopenfilenames(
+    title="Select CSV Files",
+    filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+)
+
+# Check if any files were selected
+if not file_paths:
+    print("No files selected. Exiting.")
+    exit()
+
+# Initialize a list to store results for each file
+all_results = []
+
+for file_path in file_paths:
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(file_path)
+
+    # Define all possible filters based on marker positivity
+    filters_PanCK = {
+    #PanCK
+        'all_PanCK_cells': (df['Cy5_PanCK Positive Classification'] == 1) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+    
+        'PanCK_only': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                      (df['Gold_CD8 Positive Classification'] == 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] == 0),                 
+    
+        'PanCK_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'PanCK_CD8': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'PanCK_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'PanCK_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] > 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'PanCK_CD8_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'PanCK_CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] > 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'PanCK_CD8_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    }
+    
+    filters_CD8 = {
+    #CD8 cells
+    
+        'all_CD8_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  == 1) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+    
+       'CD8_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] > 0) & 
+                    (df['Green#2_CD4 Positive Classification'] == 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0),                  
+    
+        'PanCK_CD8': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'CD8_CD4': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                   (df['Gold_CD8 Positive Classification'] > 0) & 
+                   (df['Green#2_CD4 Positive Classification'] > 0) & 
+                   (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'PanCK_CD8_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'PanCK_CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] > 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'CD8_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    }
+    
+    filters_CD4 = {                           
+    #CD4 cells
+    
+        'all_CD4_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 1) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+    
+        'CD4_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] == 0) & 
+                    (df['Green#2_CD4 Positive Classification'] > 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0),                 
+    
+        'PanCK_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    
+        'CD8_CD4': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                   (df['Gold_CD8 Positive Classification'] > 0) & 
+                   (df['Green#2_CD4 Positive Classification'] > 0) & 
+                   (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+                   
+        'PanCK_CD8_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+    }
+
+    filters_FOXP3 = {   
+    #FOXP3 cells
+
+        'all_FOXP3_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] == 1),
+      
+        'FOXP3_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                      (df['Gold_CD8 Positive Classification']  == 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] > 0),                
+    
+        'PanCK_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),  
+                      
+        'CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+
+        'PanCK_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] > 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+    
+        'PanCK_CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] > 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+
+        'CD8_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] > 0),    
+    }
+
+    total_panck = len(df[df['Cy5_PanCK Positive Classification'] == 1])
+    total_CD8 = len(df[df['Gold_CD8 Positive Classification'] == 1])
+    total_CD4 = len(df[df['Green#2_CD4 Positive Classification'] == 1])
+    total_FOXP3 = len(df[df['NarrowRed_FOXP3 Positive Classification'] == 1])
+
+    # Calculate counts and percentages relative to total marker-positive cells
+    results = {}
+    
+    # PanCK calculations
+    panck_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_PanCK.items()}
+    panck_percentages = {key: (count/total_panck)*100 if total_panck > 0 else 0 
+                        for key, count in panck_counts.items()}
+    
+    # CD8 calculations - all percentages relative to total_CD8
+    CD8_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_CD8.items()}
+    CD8_percentages = {key: (count/total_CD8)*100 if total_CD8 > 0 else 0 
+                       for key, count in CD8_counts.items()}
+    
+    # CD4 calculations - all percentages relative to total_CD4
+    CD4_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_CD4.items()}
+    CD4_percentages = {key: (count/total_CD4)*100 if total_CD4 > 0 else 0 
+                      for key, count in CD4_counts.items()}
+    
+    # FOXP3 calculations - all percentages relative to total_FOXP3
+    FOXP3_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_FOXP3.items()}
+    FOXP3_percentages = {key: (count/total_FOXP3)*100 if total_FOXP3 > 0 else 0 
+                       for key, count in FOXP3_counts.items()}
+
+
+    # Create data dictionary for DataFrame
+    data = {
+        'Filename': os.path.basename(file_path),
+        'Total PanCK+': total_panck,
+        'Total CD8+': total_CD8,
+        'Total CD4+': total_CD4,
+        'Total FOXP3+': total_FOXP3,
+        **{f"{k}_count": v for k, v in panck_counts.items()},
+        **{f"{k}_percent_of_total_PanCK": f"{v:.2f}" for k, v in panck_percentages.items()},
+        **{f"{k}_count": v for k, v in CD8_counts.items()},
+        **{f"{k}_percent_of_total_CD8": f"{v:.2f}" for k, v in CD8_percentages.items()},
+        **{f"{k}_count": v for k, v in CD4_counts.items()},
+        **{f"{k}_percent_of_total_CD4": f"{v:.2f}" for k, v in CD4_percentages.items()},
+        **{f"{k}_count": v for k, v in FOXP3_counts.items()},
+        **{f"{k}_percent_of_total_FOXP3": f"{v:.2f}" for k, v in FOXP3_percentages.items()}
+    }
+
+
+    # Create DataFrame for this file
+    results_df = pd.DataFrame([data])
+
+    # Remove column names for empty columns before saving
+    results_df.columns = ["" if col.startswith("Unnamed_") else col for col in results_df.columns]
+
+    # Append results to the list
+    all_results.append(results_df)
+
+# Concatenate all results into a single DataFrame
+final_results_df = pd.concat(all_results, ignore_index=True)
+
+
+# Save to Excel with the first column free
+output_file_path = r"C:\Users\smera\Downloads\TCP_DP.xlsx"
+final_results_df.to_excel(output_file_path, index=False, sheet_name='Results', startcol=1)
+
+print(f"Results saved to {output_file_path}")

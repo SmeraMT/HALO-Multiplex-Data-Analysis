@@ -1,4 +1,4 @@
-#Extracts data such as double, triple positives, cells in the background etc. from objectdata .csv file. 
+#Extracts data such as double, triple positives, cells in the background etc. from objectdata .csv file.
 #This is particularily for 4 cell markers named as Cy5_PanCK, Gold_CD19, Green#2_CD3 and NarrowRed_CD68. 
 
 import os

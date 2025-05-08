@@ -1,0 +1,195 @@
+#Extracts data such as double, triple positives, cells in the background etc. from objectdata .csv file.
+#This is particularily for 4 cell markers named as Cy5_PanCK, Gold_CD8, Green#2_CD4 and NarrowRed_FOXP3. 
+#Filtering data can be changed as required
+
+
+import os
+import pandas as pd
+from openpyxl import load_workbook
+from tkinter import Tk
+from tkinter.filedialog import askopenfilenames
+
+# Hide the root window
+Tk().withdraw()
+
+# Open a file dialog to select multiple CSV files
+file_paths = askopenfilenames(
+    title="Select CSV Files",
+    filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+)
+
+# Check if any files were selected
+if not file_paths:
+    print("No files selected. Exiting.")
+    exit()
+
+# Initialize a list to store results for each file
+all_results = []
+
+for file_path in file_paths:
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(file_path)
+
+    # Define all possible filters based on marker positivity
+    filters = {
+        'all_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+        # Empty line for spacing
+        'all_PanCK_cells': (df['Cy5_PanCK Positive Classification'] == 1) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+        # Empty line for spacing
+        'all_CD8_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  == 1) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+        # Empty line for spacing
+        'all_CD4_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 1) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+        # Empty line for spacing
+        'all_CD4+FOXP3_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 1) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] == 1),
+        # Empty line for spacing
+        'PanCK_only': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                      (df['Gold_CD8 Positive Classification'] == 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'CD8_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] > 0) & 
+                    (df['Green#2_CD4 Positive Classification'] == 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'CD4_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] == 0) & 
+                    (df['Green#2_CD4 Positive Classification'] > 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        # Empty line for spacing
+        'CD8_CD4': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                   (df['Gold_CD8 Positive Classification'] > 0) & 
+                   (df['Green#2_CD4 Positive Classification'] > 0) & 
+                   (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        # Empty line for spacing
+        'PanCK_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] > 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        # Empty line for spacing
+        'PanCK_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        # Empty line for spacing
+        'PanCK_CD8': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'PanCK_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'CD8_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        # Empty line for spacing
+        'PanCK_CD8_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        # Empty line for spacing
+        'PanCK_CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] > 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        # Empty line for spacing
+        'PanCK_CD8_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                (df['Gold_CD8 Positive Classification'] > 0) & 
+                                (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                (df['NarrowRed_FOXP3 Positive Classification'] > 0),  
+        # Empty line for spacing
+        'Stroma_PanCK': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                (df['Gold_CD8 Positive Classification'] == 0) & 
+                                (df['Green#2_CD4 Positive Classification'] == 0) & 
+                                (df['NarrowRed_FOXP3 Positive Classification'] == 0) &
+                                (df['Classifier Label'] == 'Stroma' ),
+        # Empty line for spacing
+        'Bg_PanCK_only': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                      (df['Gold_CD8 Positive Classification'] == 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] == 0) &
+                      (df['Classifier Label'] == 'Background'),
+        # Empty line for spacing
+        'Bg_CD8_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] > 0) & 
+                    (df['Green#2_CD4 Positive Classification'] == 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0) &
+                    (df['Classifier Label'] == 'Background'),
+        # Empty line for spacing
+        'Bg_CD4_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] == 0) & 
+                    (df['Green#2_CD4 Positive Classification'] > 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0) &
+                    (df['Classifier Label'] == 'Background'),
+        # Empty line for spacing
+        'Bg_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0) &
+                     (df['Classifier Label'] == 'Background'), 
+    }
+
+    # Filters where an empty column should be added after
+    empty_columns_after = {'all_cells', 'all_CD4+FOXP3_cells','CD4_FOXP3', 'PanCK_CD4', 'PanCK_CD8_CD4_FOXP3', 'Stroma_PanCK' }  # Specify keys where empty columns should be inserted
+
+    # Apply filters and store counts
+    counts = {key: len(df[filters[key]]) for key in filters}
+
+    # Get denominator (all_cells count)
+    all_cells_count = counts.get('all_cells', 1)  # Avoid division by zero
+
+    # Prepare data for Excel
+    data = {'File Name': [os.path.basename(file_path)]}
+    for key, value in counts.items():
+        data[key] = [value]
+        data[f"% {key}"] = [round((value / all_cells_count) * 100, 3) if all_cells_count > 0 else 0]  # Percentage Calculation
+        
+        if key in empty_columns_after:
+            data[f"Unnamed_{key}"] = [None]  # Insert an unnamed empty column
+
+    # Create DataFrame for this file
+    results_df = pd.DataFrame(data)
+
+    # Remove column names for empty columns before saving
+    results_df.columns = ["" if col.startswith("Unnamed_") else col for col in results_df.columns]
+
+    # Append results to the list
+    all_results.append(results_df)
+
+# Concatenate all results into a single DataFrame
+final_results_df = pd.concat(all_results, ignore_index=True)
+
+# Save to Excel
+output_file_path = r"C:\Users\smera\Downloads\TCP_QC1.xlsx"
+final_results_df.to_excel(output_file_path, index=False, sheet_name='Results')
+
+print(f"Results saved to {output_file_path}")

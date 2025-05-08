@@ -1,0 +1,274 @@
+#Extracts double and triple positives and gives percentages with respect to different cell types. For example, percentage of all T cell double/triple positives with respect to total T cells. 
+
+import os
+import pandas as pd
+from openpyxl import load_workbook
+from tkinter import Tk
+from tkinter.filedialog import askopenfilenames
+
+# Initialize Tkinter root
+Tk().withdraw()
+
+# Open a file dialog to select multiple CSV files
+file_paths = askopenfilenames(
+    title="Select CSV Files",
+    filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+)
+
+# Check if any files were selected
+if not file_paths:
+    print("No files selected. Exiting.")
+    exit()
+
+# Initialize a list to store results for each file
+all_results = []
+
+for file_path in file_paths:
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(file_path)
+
+ # Define all possible filters based on marker positivity
+    filters_PanCK = {            
+    #Panck 
+    
+        'all_PanCK_cells': (df['Cy5_PanCK Positive Classification'] == 1) & 
+                    (df['Gold_CD19 Positive Classification']  >= 0) & 
+                    (df['Green#2_CD3 Positive Classification'] >= 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] >= 0),
+                    
+        'PanCK_only': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),
+    
+        'PanCK_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),
+               
+        'PanCK_CD19': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),   
+                    
+        'PanCK_CD3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),
+
+        'PanCK_CD3_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD19 Positive Classification'] == 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] > 0),
+        
+        'PanCK_CD19_CD3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD19 Positive Classification'] > 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] == 0),
+        
+        'PanCK_CD19_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD19 Positive Classification'] > 0) & 
+                            (df['Green#2_CD3 Positive Classification'] == 0) & 
+                            (df['NarrowRed_CD68 Positive Classification'] > 0),
+    }    
+                    
+    filters_CD19 = {                      
+    #Bcells
+                    
+        'all_CD19_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                    (df['Gold_CD19 Positive Classification']  == 1) & 
+                    (df['Green#2_CD3 Positive Classification'] >= 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] >= 0),
+    
+        'CD19_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),     
+                    
+        'PanCK_CD19': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),
+    
+        'CD19_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),
+                    
+        'CD19_CD3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),
+        
+        'PanCK_CD19_CD3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD19 Positive Classification'] > 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] == 0),
+        
+        'PanCK_CD19_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD19 Positive Classification'] > 0) & 
+                            (df['Green#2_CD3 Positive Classification'] == 0) & 
+                            (df['NarrowRed_CD68 Positive Classification'] > 0),
+                    
+        'CD19_CD3_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                        (df['Gold_CD19 Positive Classification'] > 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] > 0),
+    }
+    
+    filters_CD3 = {                          
+    #T cells
+                    
+        'all_CD3_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                    (df['Gold_CD19 Positive Classification']  >= 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 1) & 
+                    (df['NarrowRed_CD68 Positive Classification'] >= 0),
+    
+        'CD3_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),  
+                    
+        'PanCK_CD3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),
+                  
+        'CD19_CD3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 0),
+                    
+        'CD3_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),
+    
+        'PanCK_CD3_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD19 Positive Classification'] == 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] > 0),
+        
+        'PanCK_CD19_CD3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD19 Positive Classification'] > 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] == 0),
+
+        'CD19_CD3_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                        (df['Gold_CD19 Positive Classification'] > 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] > 0),
+    }
+
+    filters_CD68 = {     
+    #Macrophages
+                    
+        'all_CD68_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                    (df['Gold_CD19 Positive Classification']  >= 0) & 
+                    (df['Green#2_CD3 Positive Classification'] >= 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] == 1),
+        
+        'CD68_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),
+    
+        'PanCK_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),
+        
+        'CD19_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] > 0) & 
+                    (df['Green#2_CD3 Positive Classification'] == 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),          
+                    
+        'CD3_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD19 Positive Classification'] == 0) & 
+                    (df['Green#2_CD3 Positive Classification'] > 0) & 
+                    (df['NarrowRed_CD68 Positive Classification'] > 0),
+
+        'PanCK_CD3_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD19 Positive Classification'] == 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] > 0),
+        
+        'PanCK_CD19_CD68': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD19 Positive Classification'] > 0) & 
+                            (df['Green#2_CD3 Positive Classification'] == 0) & 
+                            (df['NarrowRed_CD68 Positive Classification'] > 0),
+        
+        'CD19_CD3_CD68': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                        (df['Gold_CD19 Positive Classification'] > 0) & 
+                        (df['Green#2_CD3 Positive Classification'] > 0) & 
+                        (df['NarrowRed_CD68 Positive Classification'] > 0),
+    
+
+    }
+
+
+
+# Get total counts for each marker type
+    total_panck = len(df[df['Cy5_PanCK Positive Classification'] == 1])
+    total_cd19 = len(df[df['Gold_CD19 Positive Classification'] == 1])
+    total_cd3 = len(df[df['Green#2_CD3 Positive Classification'] == 1])
+    total_cd68 = len(df[df['NarrowRed_CD68 Positive Classification'] == 1])
+
+    # Calculate counts and percentages relative to total marker-positive cells
+    results = {}
+    
+    # PanCK calculations
+    panck_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_PanCK.items()}
+    panck_percentages = {key: (count/total_panck)*100 if total_panck > 0 else 0 
+                        for key, count in panck_counts.items()}
+    
+    # CD19 calculations - all percentages relative to total_cd19
+    cd19_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_CD19.items()}
+    cd19_percentages = {key: (count/total_cd19)*100 if total_cd19 > 0 else 0 
+                       for key, count in cd19_counts.items()}
+    
+    # CD3 calculations - all percentages relative to total_cd3
+    cd3_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_CD3.items()}
+    cd3_percentages = {key: (count/total_cd3)*100 if total_cd3 > 0 else 0 
+                      for key, count in cd3_counts.items()}
+    
+    # CD68 calculations - all percentages relative to total_cd68
+    cd68_counts = {key: len(df[filter_condition]) for key, filter_condition in filters_CD68.items()}
+    cd68_percentages = {key: (count/total_cd68)*100 if total_cd68 > 0 else 0 
+                       for key, count in cd68_counts.items()}
+
+    # Create data dictionary for DataFrame
+    data = {
+        'Filename': os.path.basename(file_path),
+        'Total PanCK+': total_panck,
+        'Total CD19+': total_cd19,
+        'Total CD3+': total_cd3,
+        'Total CD68+': total_cd68,
+        **{f"{k}_count": v for k, v in panck_counts.items()},
+        **{f"{k}_percent_of_total_PanCK": f"{v:.2f}" for k, v in panck_percentages.items()},
+        **{f"{k}_count": v for k, v in cd19_counts.items()},
+        **{f"{k}_percent_of_total_CD19": f"{v:.2f}" for k, v in cd19_percentages.items()},
+        **{f"{k}_count": v for k, v in cd3_counts.items()},
+        **{f"{k}_percent_of_total_CD3": f"{v:.2f}" for k, v in cd3_percentages.items()},
+        **{f"{k}_count": v for k, v in cd68_counts.items()},
+        **{f"{k}_percent_of_total_CD68": f"{v:.2f}" for k, v in cd68_percentages.items()}
+    }
+
+# Create DataFrame
+    results_df = pd.DataFrame([data])
+
+
+# Remove column names for empty columns before saving
+    results_df.columns = ["" if col.startswith("Unnamed_") else col for col in results_df.columns]
+
+# Append results to the list
+    all_results.append(results_df)
+
+# Concatenate all results into a single DataFrame
+final_results_df = pd.concat(all_results, ignore_index=True)
+
+
+output_file_path = r"C:\Users\smera\Downloads\ICP_DP.xlsx"
+final_results_df.to_excel(output_file_path, index=False, sheet_name='Results', startcol=1)
+
+print(f"Results saved to {output_file_path}")

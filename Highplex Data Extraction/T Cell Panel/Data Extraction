@@ -1,0 +1,287 @@
+#Extracts data regarding number of different cell types without double positives, number of double and triple positives. It also gives these numbers in different regions - tumour and stroma. 
+
+import os
+import pandas as pd
+from openpyxl import load_workbook
+from tkinter import Tk
+from tkinter.filedialog import askopenfilenames
+
+# Initialize Tkinter root
+root = Tk()
+root.withdraw()  # Hide the root window
+
+# Open file dialog to select CSV files
+file_paths = askopenfilenames(
+    title="Select CSV files",
+    filetypes=[("CSV files", "*.csv")]
+)
+
+# Initialize a list to store results for each file
+all_results = []
+
+# Process each file
+for file_path in file_paths:
+    # Read the CSV file into a DataFrame
+    df = pd.read_csv(file_path)
+
+    # Define all possible filters based on marker positivity
+    filters = {
+        'all_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                      (df['Gold_CD8 Positive Classification']  >= 0) & 
+                      (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] >= 0),
+        'PanCK_only': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                      (df['Gold_CD8 Positive Classification'] == 0) & 
+                      (df['Green#2_CD4 Positive Classification'] == 0) & 
+                      (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'CD8_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] > 0) & 
+                    (df['Green#2_CD4 Positive Classification'] == 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'CD4_only': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                    (df['Gold_CD8 Positive Classification'] == 0) & 
+                    (df['Green#2_CD4 Positive Classification'] > 0) & 
+                    (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        'CD8_CD4': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                   (df['Gold_CD8 Positive Classification'] > 0) & 
+                   (df['Green#2_CD4 Positive Classification'] > 0) & 
+                   (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        'PanCK_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] > 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        'PanCK_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                        (df['Gold_CD8 Positive Classification'] == 0) & 
+                        (df['Green#2_CD4 Positive Classification'] == 0) & 
+                        (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        'PanCK_CD8': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] > 0) & 
+                     (df['Green#2_CD4 Positive Classification'] == 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'PanCK_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                     (df['Gold_CD8 Positive Classification'] == 0) & 
+                     (df['Green#2_CD4 Positive Classification'] > 0) & 
+                     (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'CD8_CD4_FOXP3': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        'PanCK_CD8_CD4': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                          (df['Gold_CD8 Positive Classification'] > 0) & 
+                          (df['Green#2_CD4 Positive Classification'] > 0) & 
+                          (df['NarrowRed_FOXP3 Positive Classification'] == 0),
+        'PanCK_CD8_FOXP3': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                            (df['Gold_CD8 Positive Classification'] > 0) & 
+                            (df['Green#2_CD4 Positive Classification'] == 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0),
+        'all_tumour_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                            (df['Gold_CD8 Positive Classification']  >= 0) & 
+                            (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] >= 0) &
+                            (df['Classifier Label'] == 'Tumour'),
+        'PanCK_only_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) &  
+                              (df['Gold_CD8 Positive Classification'] == 0) & 
+                              (df['Green#2_CD4 Positive Classification'] == 0) & 
+                              (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                              (df['Classifier Label'] == 'Tumour'),
+        'CD8_only_Tumour': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                           (df['Gold_CD8 Positive Classification'] > 0) & 
+                           (df['Green#2_CD4 Positive Classification'] == 0) & 
+                           (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                           (df['Classifier Label'] == 'Tumour'),
+        'CD4_only_Tumour': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                           (df['Gold_CD8 Positive Classification'] == 0) & 
+                           (df['Green#2_CD4 Positive Classification'] > 0) & 
+                           (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                           (df['Classifier Label'] == 'Tumour'),
+        'CD4_FOXP3_Tumour': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] > 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                            (df['Classifier Label'] == 'Tumour'),
+        'CD8_CD4_Tumour': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                           (df['Gold_CD8 Positive Classification'] > 0) & 
+                           (df['Green#2_CD4 Positive Classification'] > 0) & 
+                           (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                           (df['Classifier Label'] == 'Tumour'),
+        'CD8_FOXP3_Tumour': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                             (df['Gold_CD8 Positive Classification'] > 0) & 
+                             (df['Green#2_CD4 Positive Classification'] == 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                             (df['Classifier Label'] == 'Tumour'),
+        'PanCK_CD4_FOXP3_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                   (df['Gold_CD8 Positive Classification'] == 0) & 
+                                   (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                   (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                                   (df['Classifier Label'] == 'Tumour'),
+        'PanCK_FOXP3_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                               (df['Gold_CD8 Positive Classification'] == 0) & 
+                               (df['Green#2_CD4 Positive Classification'] == 0) & 
+                               (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                               (df['Classifier Label'] == 'Tumour'),
+        'PanCK_CD8_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                             (df['Gold_CD8 Positive Classification'] > 0) & 
+                             (df['Green#2_CD4 Positive Classification'] == 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                             (df['Classifier Label'] == 'Tumour'),
+        'PanCK_CD4_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                             (df['Gold_CD8 Positive Classification'] == 0) & 
+                             (df['Green#2_CD4 Positive Classification'] > 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                             (df['Classifier Label'] == 'Tumour'),
+        'PanCK_CD8_CD4_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                 (df['Gold_CD8 Positive Classification'] > 0) & 
+                                 (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                 (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                                 (df['Classifier Label'] == 'Tumour'),
+        'PanCK_CD8_FOXP3_Tumour': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                   (df['Gold_CD8 Positive Classification'] > 0) & 
+                                   (df['Green#2_CD4 Positive Classification'] == 0) & 
+                                   (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                                   (df['Classifier Label'] == 'Tumour'),
+        'CD8_CD4_FOXP3_Tumour': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                                 (df['Gold_CD8 Positive Classification'] > 0) & 
+                                 (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                 (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                                 (df['Classifier Label'] == 'Tumour'),
+        'all_stromal_cells': (df['Cy5_PanCK Positive Classification'] >= 0) & 
+                             (df['Gold_CD8 Positive Classification']  >= 0) & 
+                             (df['Green#2_CD4 Positive Classification'] >= 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] >= 0) &
+                             (df['Classifier Label'] == 'Stroma'),
+        'PanCK_only_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) &  
+                              (df['Gold_CD8 Positive Classification'] == 0) & 
+                              (df['Green#2_CD4 Positive Classification'] == 0) & 
+                              (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                              (df['Classifier Label'] == 'Stroma'),
+        'CD8_only_Stroma': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                           (df['Gold_CD8 Positive Classification'] > 0) & 
+                           (df['Green#2_CD4 Positive Classification'] == 0) & 
+                           (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                           (df['Classifier Label'] == 'Stroma'),
+        'CD4_only_Stroma': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                           (df['Gold_CD8 Positive Classification'] == 0) & 
+                           (df['Green#2_CD4 Positive Classification'] > 0) & 
+                           (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                           (df['Classifier Label'] == 'Stroma'),
+        'CD4_FOXP3_Stroma': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                            (df['Gold_CD8 Positive Classification'] == 0) & 
+                            (df['Green#2_CD4 Positive Classification'] > 0) & 
+                            (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                            (df['Classifier Label'] == 'Stroma'),
+        'CD8_CD4_Stroma': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                           (df['Gold_CD8 Positive Classification'] > 0) & 
+                           (df['Green#2_CD4 Positive Classification'] > 0) & 
+                           (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                           (df['Classifier Label'] == 'Stroma'),
+        'CD8_FOXP3_Stroma': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                             (df['Gold_CD8 Positive Classification'] > 0) & 
+                             (df['Green#2_CD4 Positive Classification'] == 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                             (df['Classifier Label'] == 'Stroma'),
+        'PanCK_CD4_FOXP3_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                   (df['Gold_CD8 Positive Classification'] == 0) & 
+                                   (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                   (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                                   (df['Classifier Label'] == 'Stroma'),
+        'PanCK_FOXP3_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                               (df['Gold_CD8 Positive Classification'] == 0) & 
+                               (df['Green#2_CD4 Positive Classification'] == 0) & 
+                               (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                               (df['Classifier Label'] == 'Stroma'),
+        'PanCK_CD8_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                             (df['Gold_CD8 Positive Classification'] > 0) & 
+                             (df['Green#2_CD4 Positive Classification'] == 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                             (df['Classifier Label'] == 'Stroma'),
+        'PanCK_CD4_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                             (df['Gold_CD8 Positive Classification'] == 0) & 
+                             (df['Green#2_CD4 Positive Classification'] > 0) & 
+                             (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                             (df['Classifier Label'] == 'Stroma'),
+        'PanCK_CD8_CD4_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                 (df['Gold_CD8 Positive Classification'] > 0) & 
+                                 (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                 (df['NarrowRed_FOXP3 Positive Classification'] == 0) & 
+                                 (df['Classifier Label'] == 'Stroma'),
+        'PanCK_CD8_FOXP3_Stroma': (df['Cy5_PanCK Positive Classification'] > 0) & 
+                                   (df['Gold_CD8 Positive Classification'] > 0) & 
+                                   (df['Green#2_CD4 Positive Classification'] == 0) & 
+                                   (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                                   (df['Classifier Label'] == 'Stroma'),
+        'CD8_CD4_FOXP3_Stroma': (df['Cy5_PanCK Positive Classification'] == 0) & 
+                                 (df['Gold_CD8 Positive Classification'] > 0) & 
+                                 (df['Green#2_CD4 Positive Classification'] > 0) & 
+                                 (df['NarrowRed_FOXP3 Positive Classification'] > 0) & 
+                                 (df['Classifier Label'] == 'Stroma'),
+    }
+
+    # Filters where an empty column should be added after
+    empty_columns_after = {'all_cells','CD4_FOXP3', 'PanCK_CD4', 'PanCK_CD8_CD4_FOXP3','PanCK_CD8_FOXP3','all_tumour_cells', 'CD4_FOXP3_Tumour', 'PanCK_CD4_FOXP3_Tumour', 'PanCK_CD8_FOXP3_Tumour', 'CD8_CD4_FOXP3_Tumour',  'CD4_FOXP3_Stroma', 'PanCK_CD4_FOXP3_Stroma', 'PanCK_CD8_FOXP3_Stroma', 'CD8_CD4_FOXP3_Stroma', 'all_stromal_cells'}
+
+    # Apply filters and store counts
+    counts = {key: len(df[filters[key]]) for key in filters}
+
+    # Get denominator (all_cells count)
+    all_cells_count = counts.get('all_cells', 1)  # Avoid division by zero
+    all_tumour_count = counts.get('all_tumour_cells', counts.get('all_tumour_cells', 1))  # Handle possible naming variations
+    all_stroma_count = counts.get('all_stromal_cells', counts.get('all_stromal_cells', 1))
+
+    data = {'File Name': [os.path.basename(file_path)]}
+    for key, value in counts.items():
+        data[key] = [value]
+        
+        # Determine appropriate denominator
+        if '_Tumour' in key:
+            denominator = all_tumour_count
+        elif '_Stroma' in key:
+            denominator = all_stroma_count
+        else:
+            denominator = all_cells_count
+        
+        # Compute percentage
+        data[f"% {key}"] = [round((value / denominator) * 100, 3) if denominator > 0 else 0]
+        
+        if key in empty_columns_after:
+            data[f"Unnamed_{key}"] = [None]
+        
+        if key == 'CD4_FOXP3':
+            Tils = counts.get('CD8_only', 0) + counts.get('CD4_only', 0) + counts.get('CD4_FOXP3', 0)
+            data['Tils'] = [Tils]
+            data['%Tils'] = [round((Tils / all_cells_count) * 100,3) if all_cells_count > 0 else 0]
+            
+        if key == 'CD4_FOXP3_Tumour':
+            Tils = counts.get('CD8_only_Tumour', 0) + counts.get('CD4_only_Tumour', 0) + counts.get('CD4_FOXP3_Tumour', 0)
+            data['Tils_tumour'] = [Tils]
+            data['%Tils_tumour'] = [round((Tils / all_tumour_count) * 100,3) if all_tumour_count > 0 else 0]
+            
+        if key == 'CD4_FOXP3_Stroma':
+            Tils = counts.get('CD8_only_Stroma', 0) + counts.get('CD4_only_Stroma', 0) + counts.get('CD4_FOXP3_Stroma', 0)
+            data['Tils_stroma'] = [Tils]
+            data['%Tils_stroma'] = [round((Tils / all_stroma_count) * 100,3) if all_stroma_count > 0 else 0]
+
+    # Create DataFrame for the current file
+    results_df = pd.DataFrame(data)
+
+    # Remove column names for empty columns before saving
+    results_df.columns = ["" if col.startswith("Unnamed_") else col for col in results_df.columns]
+
+    # Append the results to the list
+    all_results.append(results_df)
+
+# Concatenate all results into a single DataFrame
+final_results_df = pd.concat(all_results, ignore_index=True)
+
+# Save to Excel
+output_file_path = r"C:\Users\smera\Downloads\TCP_data.xlsx"
+final_results_df.to_excel(output_file_path, index=False, sheet_name='Results')
+
+print(f"Results saved to {output_file_path}")

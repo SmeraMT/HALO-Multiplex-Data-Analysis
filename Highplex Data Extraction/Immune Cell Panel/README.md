@@ -1,1 +1,1 @@
-
+This set of code is specifically for 4 cell markers named as Cy5_PanCK, Gold_CD19, Green#2_CD3 and NarrowRed_FOXP3. Object data .csv files obtained after highplex can be uploaded. The code generates an excel sheet with different kinds of data for each file uploaded. Data extracted depends on the filters used. 

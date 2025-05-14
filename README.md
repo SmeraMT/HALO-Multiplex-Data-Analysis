@@ -1,1 +1,1 @@
-# HALO Multiplex Data Analysis
+HALO Multiplex data extraction and analysis

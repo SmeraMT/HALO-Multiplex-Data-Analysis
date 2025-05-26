@@ -51,17 +51,31 @@ if file_path:
         temp['Cell_Type'] = label
         plot_df = pd.concat([plot_df, temp], ignore_index=True)
 
-    # Create interactive scatter plot
+    # Create interactive scatter plot with custom colors
+    color_map = {
+        'PanCK_only': 'blue',
+        'CD19_only': 'green',
+        'CD3_only': 'red',
+        'CD68_only': 'purple'
+    }
+
     fig = px.scatter(
         plot_df,
         x='x_center',
         y='y_center',
         color='Cell_Type',
+        color_discrete_map=color_map,  # Specify the custom color map
         title='Positions of Filtered Cell Types (center positions)',
         labels={'x_center': 'X Center', 'y_center': 'Y Center'},
         opacity=0.7
     )
     fig.update_layout(legend_title_text='Cell Type')
+
+    # Save the figure as an HTML file
+    html_file_path = "scatter_plot.html"  # You can specify a different path if needed
+    fig.write_html(html_file_path)
+    print(f"Plot saved as {html_file_path}")
+
     fig.show()
 else:
     print("No file selected.")
